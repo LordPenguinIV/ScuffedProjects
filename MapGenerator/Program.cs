@@ -1,6 +1,5 @@
 using MapGenerator;
 using System.Diagnostics;
-using Thingimajig;
 using System.Linq;
 
 int x = 1920;

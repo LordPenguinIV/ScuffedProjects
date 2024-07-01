@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34330.188
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "3DRenderer", "Thingimajig\3DRenderer.csproj", "{9B4454E3-F4F4-48E1-AFA5-D1B455957B69}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MapGenerator", "MapGenerator\MapGenerator.csproj", "{4BE40A2E-3F24-46E8-801B-DDB9778A819D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "3DRenderer", "3DRenderer\3DRenderer.csproj", "{2F976B72-1911-4218-9F0E-7FBDE9D7FF37}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,14 +13,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{9B4454E3-F4F4-48E1-AFA5-D1B455957B69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9B4454E3-F4F4-48E1-AFA5-D1B455957B69}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9B4454E3-F4F4-48E1-AFA5-D1B455957B69}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9B4454E3-F4F4-48E1-AFA5-D1B455957B69}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4BE40A2E-3F24-46E8-801B-DDB9778A819D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4BE40A2E-3F24-46E8-801B-DDB9778A819D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4BE40A2E-3F24-46E8-801B-DDB9778A819D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4BE40A2E-3F24-46E8-801B-DDB9778A819D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F976B72-1911-4218-9F0E-7FBDE9D7FF37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F976B72-1911-4218-9F0E-7FBDE9D7FF37}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F976B72-1911-4218-9F0E-7FBDE9D7FF37}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F976B72-1911-4218-9F0E-7FBDE9D7FF37}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

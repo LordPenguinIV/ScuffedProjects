@@ -1,8 +1,8 @@
-﻿namespace Thingimajig
+﻿namespace MapGenerator
 {
     public class Renderer : Form
     {
-        private Bitmap _bitmap {  get; set; }
+        private Bitmap _bitmap { get; set; }
 
         public int X { get; set; }
         public int Y { get; set; }
@@ -62,7 +62,7 @@
                             _bitmap.SetPixel(x, y, HighLand);
                             break;
                     }
-                    
+
                 }
             }
         }
