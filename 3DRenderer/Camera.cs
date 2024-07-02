@@ -12,6 +12,7 @@ public class Camera : IObject
     public int CurrentRotationAngleY = 180;
     public int CurrentRotationAngleX = 0;
     public float[][] RotationMatrix;
+    public bool DoRayTracing = false;
 
     private float _distanceToPlane = 10;
 
@@ -86,12 +87,12 @@ public class Camera : IObject
         return plane;
     }
 
-    public Vector3? TraceRay(Ray ray, List<IObject> scene, int bounces = 3)
+    public Vector3? TraceRay(Ray ray, List<IObject> scene, int bounces = 4)
     {
         Vector3 color = new Vector3(0);
         float emittedLight = 0;
 
-        int colorSamples = 64;
+        int colorSamples = 512;
 
         RayCollision initialCollision = ray.GetNextCollision(scene);
 
@@ -104,12 +105,16 @@ public class Camera : IObject
             return initialCollision.Material.Color * initialCollision.Material.EmittedLight;
         }
 
-        //return initialCollision.Material.Color;
+        if (!DoRayTracing)
+        {
+            return initialCollision.Material.Color;
+        }
 
         Parallel.For(0, colorSamples, sample =>
         {
             Vector3 colorSample = new Vector3(0);
             float emittedLightSample = 0;
+            uint state = (uint)DateTime.Now.Ticks;
 
             Ray currentRay = ray;
             for (int bounce = 0; bounce < bounces; bounce++)
@@ -125,7 +130,7 @@ public class Camera : IObject
                     currentRay = new Ray
                     {
                         Origin = rayCollision.CollisionPoint,
-                        Direction = Vector3.Normalize(rayCollision.Normal + Ray.RandomDirection())
+                        Direction = Ray.RandomDirection(rayCollision.Normal, ref state)
                     };
 
                     if (rayCollision.Material.EmittedLight > 0)
@@ -151,12 +156,5 @@ public class Camera : IObject
     public override RayCollision GetCollision(Ray ray)
     {
         throw new NotImplementedException();
-    }
-
-    public enum Direction
-    {
-        X,
-        Y,
-        Z
     }
 }

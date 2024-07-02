@@ -4,13 +4,14 @@ using System.Diagnostics;
 using System.Numerics;
 using Thingimajig;
 
-int sceneSize = 512;
+int screenSize = 512;
 List<IObject> scene = new List<IObject>();
 
 Camera cam = new Camera
 {
-    ResolutionHeight = sceneSize,
-    Position = new Vector3(0, 1f, 29)
+    ResolutionHeight = screenSize,
+    Position = new Vector3(0, 1f, 29),
+    DoRayTracing = false,
 };
 
 Material red = new Material
@@ -19,7 +20,6 @@ Material red = new Material
     Color = new Vector3(1, 0, 0),
     Reflectivity = 0.5f
 };
-
 Sphere redSphere = new Sphere
 {
     Material = red,
@@ -33,7 +33,6 @@ Material blue = new Material
     Color = new Vector3(0, 0, 1),
     Reflectivity = 0.5f
 };
-
 Sphere blueSphere = new Sphere
 {
     Material = blue,
@@ -59,7 +58,6 @@ Material green = new Material
     Color = new Vector3(0, 1, 0),
     Reflectivity = 0.5f
 };
-
 Sphere greenSphere = new Sphere
 {
     Material = green,
@@ -78,17 +76,6 @@ var v = cam.GetViewingPlane(scene);
 t.Stop();
 Debug.WriteLine($"Render: {t.ElapsedMilliseconds}ms");
 
-var p = new Renderer(sceneSize, scene, cam);
+var p = new Renderer(screenSize, scene, cam);
 p.Draw(v);
 p.Run();
-t.Restart();
-
-//Debug.WriteLine($"Create Renderer: {t.ElapsedMilliseconds}ms");
-
-//t.Restart();
-//Debug.WriteLine($"Create Bitmap: {t.ElapsedMilliseconds}ms");
-
-//t.Restart();
-//Debug.WriteLine($"Display Bitmap: {t.ElapsedMilliseconds}ms");
-
-

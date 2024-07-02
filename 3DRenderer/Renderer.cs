@@ -109,14 +109,22 @@ namespace Thingimajig
             {
                 _cam.CurrentRotationAngleZ = (_cam.CurrentRotationAngleZ - 30) % 360;
             }
+            else if (e.KeyChar == '+')
+            {
+                _cam.DoRayTracing = !_cam.DoRayTracing;
+            }
             else
             {
                 Debug.WriteLine(e.KeyChar);
             }
 
+            var t = new Stopwatch();
+            t.Start();
             _cam.RecalculationRotationMatrix();
             Draw(_cam.GetViewingPlane(_scene));
             Refresh();
+            t.Stop();
+            Debug.WriteLine($"Render: {t.ElapsedMilliseconds}ms");
         }
 
         public void Run()

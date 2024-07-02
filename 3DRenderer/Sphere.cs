@@ -23,7 +23,7 @@ public class Sphere : IObject
 
         float distance = (-b - MathF.Sqrt(discriminant)) / (2 * a);
 
-        if (distance <= 0)
+        if (distance < 0)
         {
             return new RayCollision
             {

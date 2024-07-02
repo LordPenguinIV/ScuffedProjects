@@ -25,23 +25,29 @@ public struct Ray
 
         return bestCollision;
     }
-
-    private static Random _rand = new Random();
-
-    public static Vector3 RandomDirection()
+    private static float RandomFloat(ref uint state)
     {
-        float[] r = new float[6];
-        for(int i = 0; i < 6; i++)
-        {
-            r[i] = _rand.NextSingle();
-        }
-        
-        float randX = MathF.Sqrt(-2 * MathF.Log(r[0])) * MathF.Cos(2 * MathF.PI * r[1]);
-        float randY = MathF.Sqrt(-2 * MathF.Log(r[2])) * MathF.Cos(2 * MathF.PI * r[3]);
-        float randZ = MathF.Sqrt(-2 * MathF.Log(r[4])) * MathF.Cos(2 * MathF.PI * r[5]);
+        state ^= state << 13;
+        state ^= state >> 17;
+        state ^= state << 5;
+
+        return state / 4294967295f;
+    }
+    private static float RandomNormalFloat(ref uint state)
+    {
+        float theta = 2 * MathF.PI * RandomFloat(ref state);
+        float rho = MathF.Sqrt(-2 * MathF.Log(RandomFloat(ref state)));
+        return rho * MathF.Cos(theta);
+    }
+
+    public static Vector3 RandomDirection(Vector3 normal, ref uint state)
+    {
+        float randX = RandomNormalFloat(ref state);
+        float randY = RandomNormalFloat(ref state);
+        float randZ = RandomNormalFloat(ref state);
 
         Vector3 randomRay = Vector3.Normalize(new Vector3(randX, randY, randZ));
 
-        return randomRay;
+        return randomRay * MathF.Sign(Vector3.Dot(normal, randomRay));
     }
 }
