@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Drawing.Imaging;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace Thingimajig
 {
@@ -10,36 +11,18 @@ namespace Thingimajig
 
         private readonly int _sizeY;
         private readonly int _sizeX;
-        private readonly Color _sky;
 
         private Camera _cam;
-        private List<IObject> _scene;
 
-        public Renderer(int size, Color? sky = null)
+        public Renderer(int size, Camera cam)
         {
             _sizeY = size;
             _sizeX = (int)(size * 16f / 9f);
             ClientSize = new Size(_sizeX, _sizeY);
 
-            _bitmap = new Bitmap(ClientSize.Width, ClientSize.Height);
-            _sky = sky ?? Color.SkyBlue;
-
-            Text = "Pixel Drawer";
-            Paint += Renderer_Paint;
-            KeyPress += Renderer_KeyPress;
-        }
-
-        public Renderer(int size, List<IObject> scene, Camera cam, Color? sky = null)
-        {
-            _sizeY = size;
-            _sizeX = (int)(size * 16f / 9f);
-            ClientSize = new Size(_sizeX, _sizeY);
-
-            _bitmap = new Bitmap(ClientSize.Width, ClientSize.Height);
-            _sky = sky ?? Color.SkyBlue;
+            _bitmap = new Bitmap(ClientSize.Width, ClientSize.Height, PixelFormat.Format32bppArgb);
 
             _cam = cam;
-            _scene = scene;
 
             Text = "Pixel Drawer";
             Paint += Renderer_Paint;
@@ -51,15 +34,14 @@ namespace Thingimajig
             e.Graphics.DrawImage(_bitmap, 0, 0);
         }
 
-        public void Draw(Color?[,] img)
+        public void Draw(byte[] img)
         {
-            for (int i = 0; i < _sizeY; i++)
-            {
-                for (int j = 0; j < _sizeX; j++)
-                {
-                    _bitmap.SetPixel(j, i, img[i, j] ?? _sky);
-                }
-            }
+            BitmapData bmpData = _bitmap.LockBits(new Rectangle(0, 0, _sizeX, _sizeY), ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
+
+            IntPtr ptr = bmpData.Scan0;
+            Marshal.Copy(img, 0, ptr, img.Length);
+
+            _bitmap.UnlockBits(bmpData);
         }
 
         private void Renderer_KeyPress(object sender, KeyPressEventArgs e)
@@ -85,6 +67,14 @@ namespace Thingimajig
             {
                 _cam.Position = new Vector3(_cam.Position.X + 1f, _cam.Position.Y, _cam.Position.Z);
             }
+            else if (e.KeyChar == 'r')
+            {
+                _cam.Position = new Vector3(_cam.Position.X, _cam.Position.Y + 1f, _cam.Position.Z);
+            }
+            else if (e.KeyChar == 'f')
+            {
+                _cam.Position = new Vector3(_cam.Position.X, _cam.Position.Y - 1f, _cam.Position.Z);
+            }
             else if (e.KeyChar == '8')
             {
                 _cam.CurrentRotationAngleY = (_cam.CurrentRotationAngleY - 30) % 360;
@@ -103,28 +93,39 @@ namespace Thingimajig
             }
             else if (e.KeyChar == '7')
             {
-                _cam.CurrentRotationAngleZ = (_cam.CurrentRotationAngleZ + 30) % 360;
+                _cam.CurrentRotationAngleZ = (_cam.CurrentRotationAngleZ - 30) % 360;
             }
             else if (e.KeyChar == '9')
             {
-                _cam.CurrentRotationAngleZ = (_cam.CurrentRotationAngleZ - 30) % 360;
+                _cam.CurrentRotationAngleZ = (_cam.CurrentRotationAngleZ + 30) % 360;
             }
             else if (e.KeyChar == '+')
             {
                 _cam.DoRayTracing = !_cam.DoRayTracing;
+            }
+            else if (e.KeyChar == ' ')
+            {
+                _cam.OutputBuffer.Dispose();
+                _cam.SceneBuffer.Dispose();
+                _cam.Accelerator.Dispose();
+                _cam.Context.Dispose();
+
+                Close();
+                return;
             }
             else
             {
                 Debug.WriteLine(e.KeyChar);
             }
 
+            _cam.RecalculationRotationMatrix();
             var t = new Stopwatch();
             t.Start();
-            _cam.RecalculationRotationMatrix();
-            Draw(_cam.GetViewingPlane(_scene));
+            var v = _cam.GetViewingPlane();
+            Draw(v);
+            Debug.WriteLine($"Render: {t.ElapsedMilliseconds}ms");
             Refresh();
             t.Stop();
-            Debug.WriteLine($"Render: {t.ElapsedMilliseconds}ms");
         }
 
         public void Run()

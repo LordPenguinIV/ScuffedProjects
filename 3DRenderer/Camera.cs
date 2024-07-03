@@ -1,50 +1,54 @@
-﻿using System.Numerics;
-using Thingimajig;
+﻿using ILGPU;
+using ILGPU.Runtime;
+using MapGenerator;
+using System.Numerics;
 
-public class Camera : IObject
+public class Camera
 {
-    public Camera()
+    public Camera(int resolutionHeight, bool useGPU, List<Sphere> scene)
     {
+        ResolutionHeight = resolutionHeight;
+        ResolutionWidth = (int)(ResolutionHeight * 16f / 9f);
+        PlaneHeight = (float)(_distanceToPlane * Math.Tan(FOV * 0.5f * Math.PI / 180) * 2);
+        PlaneWidth = (int)(PlaneHeight * (16f / 9f));
+        Scene = scene;
+        UseGPU = useGPU;
+
+        Context = Context.Create(builder => builder.Default().EnableAlgorithms().Math(MathMode.Fast));
+        Accelerator = Context.GetPreferredDevice(preferCPU: !useGPU).CreateAccelerator(Context);
+        ViewingPlaneKernel = Accelerator.LoadAutoGroupedStreamKernel<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView2D<float, Stride2D.DenseY>, ArrayView1D<Sphere, Stride1D.Dense>, ArrayView1D<byte, Stride1D.Dense>>(GPUMethods.GetViewingPlane);
+        SceneBuffer = Accelerator.Allocate1D(scene.ToArray());
+        OutputBuffer = Accelerator.Allocate1D<byte>(ResolutionWidth * ResolutionHeight * 4);
+
         RecalculationRotationMatrix();
     }
 
     public int CurrentRotationAngleZ = 180;
     public int CurrentRotationAngleY = 180;
     public int CurrentRotationAngleX = 0;
-    public float[][] RotationMatrix;
+    public float[,] RotationMatrix;
+    public Vector3 Position;
+
+    public List<Sphere> Scene;
+
     public bool DoRayTracing = false;
+    public bool UseGPU = false;
+
+    public Context Context;
+    public Accelerator Accelerator;
+    public Action<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView2D<float, Stride2D.DenseY>, ArrayView1D<Sphere, Stride1D.Dense>, ArrayView1D<byte, Stride1D.Dense>> ViewingPlaneKernel;
+    public MemoryBuffer1D<Sphere, Stride1D.Dense> SceneBuffer;
+    public MemoryBuffer1D<byte, Stride1D.Dense> OutputBuffer;
 
     private float _distanceToPlane = 10;
 
-    public float PlaneHeight => (float)(_distanceToPlane * Math.Tan(FOV * 0.5f * Math.PI / 180) * 2);
-    public float PlaneWidth => (int)(PlaneHeight * 16f / 9f);
+    public float PlaneHeight;
+    public float PlaneWidth;
 
     public int ResolutionHeight;
-    public int ResolutionWidth => (int)(ResolutionHeight * 16f / 9f);
+    public int ResolutionWidth;
 
     public int FOV = 65;
-
-
-    public Ray GetPixelRay(int x, int y)
-    {
-        float localX = x * (PlaneWidth / ResolutionWidth) - (PlaneWidth / 2);
-        float localY = -y * (PlaneHeight / ResolutionHeight) + (PlaneHeight / 2);
-
-        return new Ray
-        {
-            Origin = Position,
-            Direction = GetDirectionRay(localX, localY)
-        };
-    }
-
-    private Vector3 GetDirectionRay(float x, float y)
-    {
-        float z = _distanceToPlane;
-
-        return new Vector3(x * RotationMatrix[0][0] + y * RotationMatrix[0][1] + z * RotationMatrix[0][2],
-            x * RotationMatrix[1][0] + y * RotationMatrix[1][1] + z * RotationMatrix[1][2],
-            x * RotationMatrix[2][0] + y * RotationMatrix[2][1] + z * RotationMatrix[2][2]);
-    }
 
     public void RecalculationRotationMatrix()
     {
@@ -53,108 +57,49 @@ public class Camera : IObject
         float beta = CurrentRotationAngleX * degToRadScale; //supposed to by y
         float gamma = CurrentRotationAngleY * degToRadScale; // supposed to by x
 
-        var r = new float[][]
-        {
-            [MathF.Cos(alpha) * MathF.Cos(beta),
-                MathF.Cos(alpha) * MathF.Sin(beta) * MathF.Sin(gamma) - MathF.Sin(alpha) * MathF.Cos(gamma),
-                MathF.Cos(alpha) * MathF.Sin(beta) * MathF.Cos(gamma) + MathF.Sin(alpha) * MathF.Sin(gamma)],
-            [MathF.Sin(alpha) * MathF.Cos(beta),
-                MathF.Sin(alpha) * MathF.Sin(beta) * MathF.Sin(gamma) + MathF.Cos(alpha) * MathF.Cos(gamma),
-                MathF.Sin(alpha) * MathF.Sin(beta) * MathF.Cos(gamma) - MathF.Cos(alpha) * MathF.Sin(gamma)],
-            [-MathF.Sin(beta),
-                MathF.Cos(alpha) * MathF.Sin(gamma),
-                MathF.Cos(beta) * MathF.Cos(gamma)],
-        };
+        var r = new float[3, 3];
+
+        r[0, 0] = MathF.Cos(alpha) * MathF.Cos(beta);
+        r[0, 1] = MathF.Cos(alpha) * MathF.Sin(beta) * MathF.Sin(gamma) - MathF.Sin(alpha) * MathF.Cos(gamma);
+        r[0, 2] = MathF.Cos(alpha) * MathF.Sin(beta) * MathF.Cos(gamma) + MathF.Sin(alpha) * MathF.Sin(gamma);
+        r[1, 0] = MathF.Sin(alpha) * MathF.Cos(beta);
+        r[1, 1] = MathF.Sin(alpha) * MathF.Sin(beta) * MathF.Sin(gamma) + MathF.Cos(alpha) * MathF.Cos(gamma);
+        r[1, 2] = MathF.Sin(alpha) * MathF.Sin(beta) * MathF.Cos(gamma) - MathF.Cos(alpha) * MathF.Sin(gamma);
+        r[2, 0] = -MathF.Sin(beta);
+        r[2, 1] = MathF.Cos(alpha) * MathF.Sin(gamma);
+        r[2, 2] = MathF.Cos(beta) * MathF.Cos(gamma);
 
         RotationMatrix = r;
     }
 
-    public Color?[,] GetViewingPlane(List<IObject> scene)
+    public byte[] GetViewingPlane()
     {
-        Color?[,] plane = new Color?[ResolutionHeight, ResolutionWidth];
-
-        Parallel.For(0, ResolutionHeight, y =>
+        MemoryBuffer1D<float, Stride1D.Dense> screenInfoBuffer = Accelerator.Allocate1D(new float[]
         {
-            Parallel.For(0, ResolutionWidth, x =>
-            {
-                Ray ray = GetPixelRay(x, y);
-                Vector3? color = TraceRay(ray, scene);
-
-                plane[y, x] = color != null ? Color.FromArgb((byte)(color.Value.X * 255), (byte)(color.Value.Y * 255), (byte)(color.Value.Z * 255)) : null;
-            });
+            ResolutionHeight,
+            ResolutionWidth,
+            PlaneHeight,
+            PlaneWidth,
+            _distanceToPlane,
+            Position.X,
+            Position.Y,
+            Position.Z,
+            DoRayTracing ? 1f : 0f,
         });
+        MemoryBuffer2D<float, Stride2D.DenseY> rotationMatrixBuffer = Accelerator.Allocate2DDenseY(RotationMatrix);
 
-        return plane;
-    }
+        ViewingPlaneKernel(new Index2D(ResolutionWidth, ResolutionHeight),
+            screenInfoBuffer, 
+            rotationMatrixBuffer, 
+            SceneBuffer, 
+            OutputBuffer);
 
-    public Vector3? TraceRay(Ray ray, List<IObject> scene, int bounces = 4)
-    {
-        Vector3 color = new Vector3(0);
-        float emittedLight = 0;
+        byte[] output = OutputBuffer.GetAsArray1D();
+        Accelerator.Synchronize();
 
-        int colorSamples = 512;
+        rotationMatrixBuffer.Dispose();
+        screenInfoBuffer.Dispose();
 
-        RayCollision initialCollision = ray.GetNextCollision(scene);
-
-        if (initialCollision.Collides != true)
-        {
-            return null;
-        }
-        else if (initialCollision.Material.EmittedLight > 0)
-        {
-            return initialCollision.Material.Color * initialCollision.Material.EmittedLight;
-        }
-
-        if (!DoRayTracing)
-        {
-            return initialCollision.Material.Color;
-        }
-
-        Parallel.For(0, colorSamples, sample =>
-        {
-            Vector3 colorSample = new Vector3(0);
-            float emittedLightSample = 0;
-            uint state = (uint)DateTime.Now.Ticks;
-
-            Ray currentRay = ray;
-            for (int bounce = 0; bounce < bounces; bounce++)
-            {
-                RayCollision rayCollision = currentRay.GetNextCollision(scene);
-
-                if (rayCollision.Collides != true)
-                {
-                    break;
-                }
-                else
-                {
-                    currentRay = new Ray
-                    {
-                        Origin = rayCollision.CollisionPoint,
-                        Direction = Ray.RandomDirection(rayCollision.Normal, ref state)
-                    };
-
-                    if (rayCollision.Material.EmittedLight > 0)
-                    {
-                        emittedLightSample += rayCollision.Material.EmittedLight;
-                        colorSample += rayCollision.Material.Color;
-                    }
-                    else
-                    {
-                        float lightStrength = Vector3.Dot(rayCollision.Normal, currentRay.Direction);
-                        colorSample += rayCollision.Material.Color * lightStrength * 2;
-                    }
-                }
-            }
-
-            emittedLight += emittedLightSample;
-            color += colorSample / colorSamples;
-        });
-
-        return color * (emittedLight / colorSamples);
-    }
-
-    public override RayCollision GetCollision(Ray ray)
-    {
-        throw new NotImplementedException();
+        return output;
     }
 }

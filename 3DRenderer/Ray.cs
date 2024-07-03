@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using ILGPU.IR;
+using System.Numerics;
 using Thingimajig;
 
 public struct Ray
@@ -7,24 +8,6 @@ public struct Ray
 
     public Vector3 Direction { get; set; }
 
-    public RayCollision GetNextCollision(List<IObject> scene)
-    {
-        RayCollision bestCollision = new RayCollision
-        {
-            Distance = float.MaxValue,
-        };
-
-        foreach (IObject obj in scene)
-        {
-            RayCollision collision = obj.GetCollision(this);
-            if (collision.Collides && collision.Distance < (bestCollision.Distance))
-            {
-                bestCollision = collision;
-            }
-        }
-
-        return bestCollision;
-    }
     private static float RandomFloat(ref uint state)
     {
         state ^= state << 13;
@@ -33,6 +16,7 @@ public struct Ray
 
         return state / 4294967295f;
     }
+
     private static float RandomNormalFloat(ref uint state)
     {
         float theta = 2 * MathF.PI * RandomFloat(ref state);
@@ -48,6 +32,21 @@ public struct Ray
 
         Vector3 randomRay = Vector3.Normalize(new Vector3(randX, randY, randZ));
 
-        return randomRay * MathF.Sign(Vector3.Dot(normal, randomRay));
+        float sign;
+        float value = Vector3.Dot(normal, randomRay);
+        if (value < 0)
+        {
+            sign = - 1;
+        }
+        else if (value > 0)
+        {
+            sign = 1;
+        }
+        else
+        {
+            sign = 0;
+        }
+
+        return randomRay * sign;
     }
 }

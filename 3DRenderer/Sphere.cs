@@ -1,11 +1,14 @@
 ﻿using System.Numerics;
 using Thingimajig;
 
-public class Sphere : IObject
+public struct Sphere
 {
     public float Radius;
+    public Vector3 Position { get; set; }
 
-    public override RayCollision GetCollision(Ray ray)
+    public Material Material;
+
+    public RayCollision GetCollision(Ray ray)
     {
         Vector3 oc = ray.Origin - Position;
         float a = Vector3.Dot(ray.Direction, ray.Direction);

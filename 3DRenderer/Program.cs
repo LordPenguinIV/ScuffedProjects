@@ -1,23 +1,15 @@
-﻿using ILGPU.Runtime;
-using ILGPU;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
 using Thingimajig;
 
 int screenSize = 512;
-List<IObject> scene = new List<IObject>();
+List<Sphere> scene = new List<Sphere>();
 
-Camera cam = new Camera
-{
-    ResolutionHeight = screenSize,
-    Position = new Vector3(0, 1f, 29),
-    DoRayTracing = false,
-};
-
+#region Scene Setup
 Material red = new Material
 {
     EmittedLight = 0,
-    Color = new Vector3(1, 0, 0),
+    Color = new Vector3(255, 0, 0),
     Reflectivity = 0.5f
 };
 Sphere redSphere = new Sphere
@@ -30,7 +22,7 @@ Sphere redSphere = new Sphere
 Material blue = new Material
 {
     EmittedLight = 0,
-    Color = new Vector3(0, 0, 1),
+    Color = new Vector3(0, 0, 255),
     Reflectivity = 0.5f
 };
 Sphere blueSphere = new Sphere
@@ -43,7 +35,7 @@ Sphere blueSphere = new Sphere
 Material light = new Material
 {
     EmittedLight = 1,
-    Color = new Vector3(1, 1, 0.5f),
+    Color = new Vector3(255, 255, 128),
 };
 Sphere sun = new Sphere
 {
@@ -55,7 +47,7 @@ Sphere sun = new Sphere
 Material green = new Material
 {
     EmittedLight = 0,
-    Color = new Vector3(0, 1, 0),
+    Color = new Vector3(0, 255, 0),
     Reflectivity = 0.5f
 };
 Sphere greenSphere = new Sphere
@@ -69,13 +61,19 @@ scene.Add(redSphere);
 scene.Add(blueSphere);
 scene.Add(greenSphere);
 scene.Add(sun);
+#endregion
+
+Camera cam = new Camera(screenSize, true, scene)
+{
+    Position = new Vector3(0, 1f, 29),
+};
 
 var t = new Stopwatch();
 t.Start();
-var v = cam.GetViewingPlane(scene);
+var v = cam.GetViewingPlane();
 t.Stop();
 Debug.WriteLine($"Render: {t.ElapsedMilliseconds}ms");
 
-var p = new Renderer(screenSize, scene, cam);
+var p = new Renderer(screenSize, cam);
 p.Draw(v);
 p.Run();
