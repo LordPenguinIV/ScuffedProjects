@@ -5,7 +5,7 @@ namespace Thingimajig
     public struct RayCollision
     {
 
-        public bool Collides { get; set; }
+        public byte Collides { get; set; }
 
         public Vector3 CollisionPoint { get; set; }
 
@@ -14,5 +14,7 @@ namespace Thingimajig
         public float Distance { get; set; }
 
         public Material Material { get; set; }
+
+        public int SphereIndex { get; set; }
     }
 }

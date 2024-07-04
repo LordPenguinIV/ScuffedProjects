@@ -7,7 +7,7 @@ namespace MapGenerator
 {
     public class GPUMethods
     {
-        public static void GetViewingPlane(Index2D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<float, Stride2D.DenseY> rotationMatrix, ArrayView1D<Sphere, Stride1D.Dense> scene, ArrayView1D<byte, Stride1D.Dense> output)
+        public static void GetInitialCollision(Index2D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<float, Stride2D.DenseY> rotationMatrix, ArrayView1D<Sphere, Stride1D.Dense> scene, ArrayView1D<byte, Stride1D.Dense> output)
         {
             float localX = i.X * (screenInfo[3] / screenInfo[1]) - (screenInfo[3] / 2);
             float localY = -i.Y * (screenInfo[2] / screenInfo[0]) + (screenInfo[2] / 2);
@@ -31,7 +31,7 @@ namespace MapGenerator
             {
                 RayCollision collision = scene[j].GetCollision(ray);
 
-                if (collision.Collides && collision.Distance < initialCollision.Distance)
+                if (collision.Collides == 1 && collision.Distance < initialCollision.Distance)
                 {
                     initialCollision = collision;
                 }
@@ -39,7 +39,7 @@ namespace MapGenerator
 
             int outputIndex = (i.Y * (int)screenInfo[1] + i.X ) * 4;
 
-            if (!initialCollision.Collides)
+            if (initialCollision.Collides == 0)
             {
                 output[outputIndex + 0] = 235; // blue
                 output[outputIndex + 1] = 206; // green
@@ -66,15 +66,20 @@ namespace MapGenerator
                 float emittedLight = 0;
 
                 int colorSamples = 256;
-                int bounces = 3;
+                int bounces = 2;
 
                 uint state = (uint)(i.X * i.Y + i.X);
                 for (int sample = 0; sample < colorSamples; sample++)
                 {
-                    Vector3 colorSample = new Vector3(0);
+                    Ray currentRay = new Ray
+                    {
+                        Origin = initialCollision.CollisionPoint,
+                        Direction = Ray.RandomDirection(initialCollision.Normal, ref state)
+                    };
+
+                    Vector3 colorSample = initialCollision.Material.Color * Vector3.Dot(initialCollision.Normal, currentRay.Direction) * 2;
                     float emittedLightSample = 0;
 
-                    Ray currentRay = ray;
                     for (int bounce = 0; bounce < bounces; bounce++)
                     {
                         RayCollision rayCollision = new RayCollision
@@ -86,13 +91,13 @@ namespace MapGenerator
                         {
                             RayCollision collision = scene[j].GetCollision(currentRay);
 
-                            if (collision.Collides && collision.Distance < rayCollision.Distance)
+                            if (collision.Collides == 1 && collision.Distance < rayCollision.Distance)
                             {
                                 rayCollision = collision;
                             }
                         }
 
-                        if (rayCollision.Collides != true)
+                        if (rayCollision.Collides == 0)
                         {
                             break;
                         }
@@ -127,5 +132,149 @@ namespace MapGenerator
                 output[outputIndex + 3] = 0; // ignore
             }
         }
+
+        /*public static void GetViewingPlane(Index3D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<RayCollision, Stride2D.DenseY> rayCollisions, ArrayView1D<Sphere, Stride1D.Dense> scene, ArrayView1D<byte, Stride1D.Dense> output)
+        {
+            RayCollision initialCollision = rayCollisions[i.XY];
+
+            if (initialCollision.Collides == 0)
+            {
+                return;
+            }
+
+            int outputIndex = (i.Y * (int)screenInfo[1] + i.X) * 4;
+
+            int colorSamples = 256;
+            int bounces = 2;
+
+            uint state = (uint)(i.X * i.Y * i.Z + i.Z);
+
+            Ray currentRay = new Ray
+            {
+                Origin = initialCollision.CollisionPoint,
+                Direction = Ray.RandomDirection(initialCollision.Normal, ref state)
+            };
+
+            Vector3 colorSample = initialCollision.Material.Color * Vector3.Dot(initialCollision.Normal, currentRay.Direction) * 2;
+            float emittedLightSample = 0;
+
+            for (int bounce = 0; bounce < bounces; bounce++)
+            {
+                RayCollision rayCollision = new RayCollision
+                {
+                    Distance = float.MaxValue,
+                };
+
+                for (int j = 0; j < scene.IntLength; j++)
+                {
+                    RayCollision collision = scene[j].GetCollision(currentRay);
+
+                    if (collision.Collides == 1 && collision.Distance < rayCollision.Distance)
+                    {
+                        rayCollision = collision;
+                    }
+                }
+
+                if (rayCollision.Collides == 0)
+                {
+                    break;
+                }
+                else
+                {
+                    currentRay = new Ray
+                    {
+                        Origin = rayCollision.CollisionPoint,
+                        Direction = Ray.RandomDirection(rayCollision.Normal, ref state)
+                    };
+
+                    if (rayCollision.Material.EmittedLight > 0)
+                    {
+                        emittedLightSample += rayCollision.Material.EmittedLight;
+                        colorSample += rayCollision.Material.Color;
+                    }
+                    else
+                    {
+                        float lightStrength = Vector3.Dot(rayCollision.Normal, currentRay.Direction);
+                        colorSample += rayCollision.Material.Color * lightStrength * 2;
+                    }
+                }
+            }
+
+            output[outputIndex + 0] += (byte)(colorSample.Z * emittedLightSample / colorSamples); // blue
+            output[outputIndex + 1] += (byte)(colorSample.Y * emittedLightSample / colorSamples); // green
+            output[outputIndex + 2] += (byte)(colorSample.X * emittedLightSample / colorSamples); // red
+        }
+
+        public static void GetInitialCollisions(Index2D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<float, Stride2D.DenseY> rotationMatrix, ArrayView1D<Sphere, Stride1D.Dense> scene, ArrayView2D<RayCollision, Stride2D.DenseY> initialCollisions, ArrayView1D<byte, Stride1D.Dense> output)
+        {
+            float localX = i.X * (screenInfo[3] / screenInfo[1]) - (screenInfo[3] / 2);
+            float localY = -i.Y * (screenInfo[2] / screenInfo[0]) + (screenInfo[2] / 2);
+
+            Vector3 rayDirection = new Vector3(localX * rotationMatrix[0, 0] + localY * rotationMatrix[0, 1] + screenInfo[4] * rotationMatrix[0, 2],
+                localX * rotationMatrix[1, 0] + localY * rotationMatrix[1, 1] + screenInfo[4] * rotationMatrix[1, 2],
+                localX * rotationMatrix[2, 0] + localY * rotationMatrix[2, 1] + screenInfo[4] * rotationMatrix[2, 2]);
+
+            Ray ray = new Ray
+            {
+                Origin = new Vector3(screenInfo[5], screenInfo[6], screenInfo[7]),
+                Direction = rayDirection
+            };
+
+            RayCollision initialCollision = new RayCollision
+            {
+                Distance = float.MaxValue,
+            };
+
+            for (int j = 0; j < scene.IntLength; j++)
+            {
+                RayCollision collision = scene[j].GetCollision(ray);
+
+                if (collision.Collides == 1 && collision.Distance < initialCollision.Distance)
+                {
+                    initialCollision = collision;
+                }
+            }
+
+            int outputIndex = (i.Y * (int)screenInfo[1] + i.X) * 4;
+
+            if (initialCollision.Collides == 0)
+            {
+                output[outputIndex + 0] = 235; // blue
+                output[outputIndex + 1] = 206; // green
+                output[outputIndex + 2] = 135; // red
+                output[outputIndex + 3] = 0; // ignore
+            }
+            else if (screenInfo[8] == 0)
+            {
+                output[outputIndex + 0] = (byte)initialCollision.Material.Color.Z; // blue
+                output[outputIndex + 1] = (byte)initialCollision.Material.Color.Y; // green
+                output[outputIndex + 2] = (byte)initialCollision.Material.Color.X; // red
+                output[outputIndex + 3] = 0; // ignore
+            }
+            else if (initialCollision.Material.EmittedLight > 0)
+            {
+                output[outputIndex + 0] = (byte)(initialCollision.Material.Color.Z * initialCollision.Material.EmittedLight); // blue
+                output[outputIndex + 1] = (byte)(initialCollision.Material.Color.Y * initialCollision.Material.EmittedLight); // green
+                output[outputIndex + 2] = (byte)(initialCollision.Material.Color.X * initialCollision.Material.EmittedLight); // red
+                output[outputIndex + 3] = 0; // ignore
+            }
+            else
+            {
+                output[outputIndex + 0] = 0; // blue
+                output[outputIndex + 1] = 0; // green
+                output[outputIndex + 2] = 0; // red
+                output[outputIndex + 3] = 0; // ignore
+                initialCollisions[i] = initialCollision;
+
+                return;
+            }
+
+            // If it should be further calculated, it will have returned
+            // Otherwise make comparison easy in future
+            initialCollisions[i] = new RayCollision
+            {
+                Collides = 0
+            };
+        }*/
     }
 }

@@ -2,6 +2,7 @@
 using ILGPU.Runtime;
 using MapGenerator;
 using System.Numerics;
+using Thingimajig;
 
 public class Camera
 {
@@ -16,7 +17,8 @@ public class Camera
 
         Context = Context.Create(builder => builder.Default().EnableAlgorithms().Math(MathMode.Fast));
         Accelerator = Context.GetPreferredDevice(preferCPU: !useGPU).CreateAccelerator(Context);
-        ViewingPlaneKernel = Accelerator.LoadAutoGroupedStreamKernel<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView2D<float, Stride2D.DenseY>, ArrayView1D<Sphere, Stride1D.Dense>, ArrayView1D<byte, Stride1D.Dense>>(GPUMethods.GetViewingPlane);
+        InitialCollisonKernel = Accelerator.LoadAutoGroupedStreamKernel<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView2D<float, Stride2D.DenseY>, ArrayView1D<Sphere, Stride1D.Dense>, /*ArrayView2D<RayCollision, Stride2D.DenseY>,*/ ArrayView1D<byte, Stride1D.Dense>>(GPUMethods.GetInitialCollision);
+        //ViewingPlaneKernel = Accelerator.LoadAutoGroupedStreamKernel<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView1D<Sphere, Stride1D.Dense>, ArrayView2D<RayCollision, Stride2D.DenseY>, ArrayView1D<byte, Stride1D.Dense>>(GPUMethods.GetViewingPlane);
         SceneBuffer = Accelerator.Allocate1D(scene.ToArray());
         OutputBuffer = Accelerator.Allocate1D<byte>(ResolutionWidth * ResolutionHeight * 4);
 
@@ -36,7 +38,8 @@ public class Camera
 
     public Context Context;
     public Accelerator Accelerator;
-    public Action<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView2D<float, Stride2D.DenseY>, ArrayView1D<Sphere, Stride1D.Dense>, ArrayView1D<byte, Stride1D.Dense>> ViewingPlaneKernel;
+    public Action<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView2D<float, Stride2D.DenseY>, ArrayView1D<Sphere, Stride1D.Dense>, /*ArrayView2D<RayCollision, Stride2D.DenseY>,*/ ArrayView1D<byte, Stride1D.Dense>> InitialCollisonKernel;
+    public Action<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView1D<Sphere, Stride1D.Dense>, ArrayView2D<RayCollision, Stride2D.DenseY>, ArrayView1D<byte, Stride1D.Dense>> ViewingPlaneKernel;
     public MemoryBuffer1D<Sphere, Stride1D.Dense> SceneBuffer;
     public MemoryBuffer1D<byte, Stride1D.Dense> OutputBuffer;
 
@@ -87,17 +90,25 @@ public class Camera
             DoRayTracing ? 1f : 0f,
         });
         MemoryBuffer2D<float, Stride2D.DenseY> rotationMatrixBuffer = Accelerator.Allocate2DDenseY(RotationMatrix);
+        //MemoryBuffer2D<RayCollision, Stride2D.DenseY> initialRayCollisionsBuffer = Accelerator.Allocate2DDenseY<RayCollision>(new Index2D(ResolutionWidth, ResolutionHeight));
 
-        ViewingPlaneKernel(new Index2D(ResolutionWidth, ResolutionHeight),
+        InitialCollisonKernel(new Index2D(ResolutionWidth, ResolutionHeight),
             screenInfoBuffer, 
             rotationMatrixBuffer, 
-            SceneBuffer, 
+            SceneBuffer,
+            //initialRayCollisionsBuffer,
             OutputBuffer);
 
         byte[] output = OutputBuffer.GetAsArray1D();
         Accelerator.Synchronize();
 
         rotationMatrixBuffer.Dispose();
+
+        /*if (DoRayTracing)
+        {
+        }*/
+
+        //initialRayCollisionsBuffer.Dispose();
         screenInfoBuffer.Dispose();
 
         return output;

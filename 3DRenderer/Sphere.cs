@@ -20,7 +20,7 @@ public struct Sphere
         {
             return new RayCollision
             {
-                Collides = false
+                Collides = 0
             };
         }
 
@@ -30,7 +30,7 @@ public struct Sphere
         {
             return new RayCollision
             {
-                Collides = false
+                Collides = 0
             };
         }
 
@@ -38,11 +38,11 @@ public struct Sphere
 
         return new RayCollision
         {
-            Collides = true,
+            Collides = 1,
             Distance = distance,
             CollisionPoint = collisonPoint,
             Material = Material,
-            Normal = Vector3.Normalize(collisonPoint - Position)
+            Normal = Vector3.Normalize(collisonPoint - Position),
         };
     }
 }
