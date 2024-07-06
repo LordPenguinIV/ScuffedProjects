@@ -6,7 +6,7 @@ using Thingimajig;
 
 public class Camera
 {
-    public Camera(int resolutionHeight, bool useGPU, List<Sphere> scene)
+    public Camera(int resolutionHeight, bool useGPU, List<Triangle> scene)
     {
         ResolutionHeight = resolutionHeight;
         ResolutionWidth = (int)(ResolutionHeight * 16f / 9f);
@@ -17,8 +17,8 @@ public class Camera
 
         Context = Context.Create(builder => builder.Default().EnableAlgorithms().Math(MathMode.Fast));
         Accelerator = Context.GetPreferredDevice(preferCPU: !useGPU).CreateAccelerator(Context);
-        InitialCollisonKernel = Accelerator.LoadAutoGroupedStreamKernel<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView2D<float, Stride2D.DenseY>, ArrayView1D<Sphere, Stride1D.Dense>, /*ArrayView2D<RayCollision, Stride2D.DenseY>,*/ ArrayView1D<byte, Stride1D.Dense>>(GPUMethods.GetInitialCollision);
-        //ViewingPlaneKernel = Accelerator.LoadAutoGroupedStreamKernel<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView1D<Sphere, Stride1D.Dense>, ArrayView2D<RayCollision, Stride2D.DenseY>, ArrayView1D<byte, Stride1D.Dense>>(GPUMethods.GetViewingPlane);
+        InitialCollisonKernel = Accelerator.LoadAutoGroupedStreamKernel<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView2D<float, Stride2D.DenseY>, ArrayView1D<Triangle, Stride1D.Dense>, /*ArrayView2D<RayCollision, Stride2D.DenseY>,*/ ArrayView1D<byte, Stride1D.Dense>>(GPUMethods.GetInitialCollision);
+        //ViewingPlaneKernel = Accelerator.LoadAutoGroupedStreamKernel<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView1D<Triangle, Stride1D.Dense>, ArrayView2D<RayCollision, Stride2D.DenseY>, ArrayView1D<byte, Stride1D.Dense>>(GPUMethods.GetViewingPlane);
         SceneBuffer = Accelerator.Allocate1D(scene.ToArray());
         OutputBuffer = Accelerator.Allocate1D<byte>(ResolutionWidth * ResolutionHeight * 4);
 
@@ -31,16 +31,16 @@ public class Camera
     public float[,] RotationMatrix;
     public Vector3 Position;
 
-    public List<Sphere> Scene;
+    public List<Triangle> Scene;
 
     public bool DoRayTracing = false;
     public bool UseGPU = false;
 
     public Context Context;
     public Accelerator Accelerator;
-    public Action<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView2D<float, Stride2D.DenseY>, ArrayView1D<Sphere, Stride1D.Dense>, /*ArrayView2D<RayCollision, Stride2D.DenseY>,*/ ArrayView1D<byte, Stride1D.Dense>> InitialCollisonKernel;
-    public Action<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView1D<Sphere, Stride1D.Dense>, ArrayView2D<RayCollision, Stride2D.DenseY>, ArrayView1D<byte, Stride1D.Dense>> ViewingPlaneKernel;
-    public MemoryBuffer1D<Sphere, Stride1D.Dense> SceneBuffer;
+    public Action<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView2D<float, Stride2D.DenseY>, ArrayView1D<Triangle, Stride1D.Dense>, /*ArrayView2D<RayCollision, Stride2D.DenseY>,*/ ArrayView1D<byte, Stride1D.Dense>> InitialCollisonKernel;
+    public Action<Index2D, ArrayView1D<float, Stride1D.Dense>, ArrayView1D<Triangle, Stride1D.Dense>, ArrayView2D<RayCollision, Stride2D.DenseY>, ArrayView1D<byte, Stride1D.Dense>> ViewingPlaneKernel;
+    public MemoryBuffer1D<Triangle, Stride1D.Dense> SceneBuffer;
     public MemoryBuffer1D<byte, Stride1D.Dense> OutputBuffer;
 
     private float _distanceToPlane = 10;

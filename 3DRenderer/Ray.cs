@@ -24,14 +24,15 @@ public struct Ray
         return rho * MathF.Cos(theta);
     }
 
-    public static Vector3 RandomDirection(Vector3 normal, ref uint state)
+    public static Vector3 RandomHemisphereDirection(Vector3 normal, ref uint state)
     {
         float randX = RandomNormalFloat(ref state);
         float randY = RandomNormalFloat(ref state);
         float randZ = RandomNormalFloat(ref state);
 
         Vector3 randomRay = Vector3.Normalize(new Vector3(randX, randY, randZ));
-
+        
+        // MathF.Sign has an exception which makes GPU angry
         float sign;
         float value = Vector3.Dot(normal, randomRay);
         if (value < 0)
@@ -48,5 +49,17 @@ public struct Ray
         }
 
         return randomRay * sign;
+    }
+
+    public static Vector3 RandomDirection(ref uint state)
+    {
+        float randX = RandomNormalFloat(ref state);
+        float randY = RandomNormalFloat(ref state);
+        float randZ = RandomNormalFloat(ref state);
+
+        Vector3 randomRay = Vector3.Normalize(new Vector3(randX, randY, randZ));
+
+
+        return randomRay;
     }
 }

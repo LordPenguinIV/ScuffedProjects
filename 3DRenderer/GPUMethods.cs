@@ -7,7 +7,7 @@ namespace MapGenerator
 {
     public class GPUMethods
     {
-        public static void GetInitialCollision(Index2D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<float, Stride2D.DenseY> rotationMatrix, ArrayView1D<Sphere, Stride1D.Dense> scene, ArrayView1D<byte, Stride1D.Dense> output)
+        public static void GetInitialCollision(Index2D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<float, Stride2D.DenseY> rotationMatrix, ArrayView1D<Triangle, Stride1D.Dense> scene, ArrayView1D<byte, Stride1D.Dense> output)
         {
             float localX = i.X * (screenInfo[3] / screenInfo[1]) - (screenInfo[3] / 2);
             float localY = -i.Y * (screenInfo[2] / screenInfo[0]) + (screenInfo[2] / 2);
@@ -62,23 +62,25 @@ namespace MapGenerator
             }
             else
             {
-                Vector3 color = new Vector3(0);
-                float emittedLight = 0;
+                Vector3 incomingLight = new Vector3(0);
 
                 int colorSamples = 256;
-                int bounces = 2;
+                int bounces = 3;
 
                 uint state = (uint)(i.X * i.Y + i.X);
                 for (int sample = 0; sample < colorSamples; sample++)
                 {
+                    Vector3 rayColor = new Vector3(1);
+                    Vector3 incomingLightSample = new Vector3(0);
+
+                    incomingLightSample += initialCollision.Material.Color * initialCollision.Material.EmittedLight * rayColor;
+                    rayColor *= initialCollision.Material.Color / 255;
+
                     Ray currentRay = new Ray
                     {
                         Origin = initialCollision.CollisionPoint,
-                        Direction = Ray.RandomDirection(initialCollision.Normal, ref state)
+                        Direction = Vector3.Normalize(initialCollision.Normal + Ray.RandomDirection(ref state))
                     };
-
-                    Vector3 colorSample = initialCollision.Material.Color * Vector3.Dot(initialCollision.Normal, currentRay.Direction) * 2;
-                    float emittedLightSample = 0;
 
                     for (int bounce = 0; bounce < bounces; bounce++)
                     {
@@ -103,37 +105,28 @@ namespace MapGenerator
                         }
                         else
                         {
+                            incomingLightSample += rayCollision.Material.Color * rayCollision.Material.EmittedLight * rayColor;
+                            rayColor *= rayCollision.Material.Color / 255;
+
                             currentRay = new Ray
                             {
                                 Origin = rayCollision.CollisionPoint,
-                                Direction = Ray.RandomDirection(rayCollision.Normal, ref state)
+                                Direction = Vector3.Normalize(rayCollision.Normal + Ray.RandomDirection(ref state))
                             };
-
-                            if (rayCollision.Material.EmittedLight > 0)
-                            {
-                                emittedLightSample += rayCollision.Material.EmittedLight;
-                                colorSample += rayCollision.Material.Color;
-                            }
-                            else
-                            {
-                                float lightStrength = Vector3.Dot(rayCollision.Normal, currentRay.Direction);
-                                colorSample += rayCollision.Material.Color * lightStrength * 2;
-                            }
                         }
                     }
 
-                    emittedLight += emittedLightSample;
-                    color += colorSample / colorSamples;
+                    incomingLight += incomingLightSample;
                 }
 
-                output[outputIndex + 0] = (byte)(color.Z * (emittedLight / colorSamples)); // blue
-                output[outputIndex + 1] = (byte)(color.Y * (emittedLight / colorSamples)); // green
-                output[outputIndex + 2] = (byte)(color.X * (emittedLight / colorSamples)); // red
+                output[outputIndex + 0] = (byte)(incomingLight.Z / colorSamples); // blue
+                output[outputIndex + 1] = (byte)(incomingLight.Y / colorSamples); // green
+                output[outputIndex + 2] = (byte)(incomingLight.X / colorSamples); // red
                 output[outputIndex + 3] = 0; // ignore
             }
         }
 
-        /*public static void GetViewingPlane(Index3D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<RayCollision, Stride2D.DenseY> rayCollisions, ArrayView1D<Sphere, Stride1D.Dense> scene, ArrayView1D<byte, Stride1D.Dense> output)
+        /*public static void GetViewingPlane(Index3D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<RayCollision, Stride2D.DenseY> rayCollisions, ArrayView1D<Triangle, Stride1D.Dense> scene, ArrayView1D<byte, Stride1D.Dense> output)
         {
             RayCollision initialCollision = rayCollisions[i.XY];
 
@@ -205,7 +198,7 @@ namespace MapGenerator
             output[outputIndex + 2] += (byte)(colorSample.X * emittedLightSample / colorSamples); // red
         }
 
-        public static void GetInitialCollisions(Index2D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<float, Stride2D.DenseY> rotationMatrix, ArrayView1D<Sphere, Stride1D.Dense> scene, ArrayView2D<RayCollision, Stride2D.DenseY> initialCollisions, ArrayView1D<byte, Stride1D.Dense> output)
+        public static void GetInitialCollisions(Index2D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<float, Stride2D.DenseY> rotationMatrix, ArrayView1D<Triangle, Stride1D.Dense> scene, ArrayView2D<RayCollision, Stride2D.DenseY> initialCollisions, ArrayView1D<byte, Stride1D.Dense> output)
         {
             float localX = i.X * (screenInfo[3] / screenInfo[1]) - (screenInfo[3] / 2);
             float localY = -i.Y * (screenInfo[2] / screenInfo[0]) + (screenInfo[2] / 2);

@@ -16,7 +16,7 @@ public struct Sphere
         float c = Vector3.Dot(oc, oc) - Radius * Radius;
         float discriminant = b * b - 4 * a * c;
 
-        if (discriminant <= 0)
+        if (discriminant < 1E-6f)
         {
             return new RayCollision
             {
@@ -26,7 +26,7 @@ public struct Sphere
 
         float distance = (-b - MathF.Sqrt(discriminant)) / (2 * a);
 
-        if (distance < 0)
+        if (distance < 1E-6f)
         {
             return new RayCollision
             {
