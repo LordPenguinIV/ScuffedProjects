@@ -69,11 +69,11 @@ namespace Thingimajig
             }
             else if (e.KeyChar == 'r')
             {
-                _cam.Position = new Vector3(_cam.Position.X, _cam.Position.Y + 1f, _cam.Position.Z);
+                _cam.MoveCamera(new Vector3(0, 1, 0));
             }
             else if (e.KeyChar == 'f')
             {
-                _cam.Position = new Vector3(_cam.Position.X, _cam.Position.Y - 1f, _cam.Position.Z);
+                _cam.MoveCamera(new Vector3(0, -1, 0));
             }
             else if (e.KeyChar == '8')
             {
