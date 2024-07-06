@@ -9,6 +9,8 @@ namespace MapGenerator
     {
         public static void GetInitialCollision(Index2D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<float, Stride2D.DenseY> rotationMatrix, ArrayView1D<Triangle, Stride1D.Dense> scene, ArrayView1D<byte, Stride1D.Dense> output)
         {
+            Vector3 skyColor = new Vector3(135, 206, 235);
+
             float localX = i.X * (screenInfo[3] / screenInfo[1]) - (screenInfo[3] / 2);
             float localY = -i.Y * (screenInfo[2] / screenInfo[0]) + (screenInfo[2] / 2);
 
@@ -22,49 +24,27 @@ namespace MapGenerator
                 Direction = rayDirection
             };
 
-            RayCollision initialCollision = new RayCollision
-            {
-                Distance = float.MaxValue,
-            };
-
-            for (int j = 0; j < scene.IntLength; j++)
-            {
-                RayCollision collision = scene[j].GetCollision(ray);
-
-                if (collision.Collides == 1 && collision.Distance < initialCollision.Distance)
-                {
-                    initialCollision = collision;
-                }
-            }
+            RayCollision initialCollision = GetNextCollision(ray, scene);
 
             int outputIndex = (i.Y * (int)screenInfo[1] + i.X ) * 4;
 
             if (initialCollision.Collides == 0)
             {
-                output[outputIndex + 0] = 235; // blue
-                output[outputIndex + 1] = 206; // green
-                output[outputIndex + 2] = 135; // red
-                output[outputIndex + 3] = 0; // ignore
+                SetPixelColor(outputIndex, skyColor, output);
             }
             else if (screenInfo[8] == 0)
             {
-                output[outputIndex + 0] = (byte)(initialCollision.Material.Color.Z); // blue
-                output[outputIndex + 1] = (byte)(initialCollision.Material.Color.Y); // green
-                output[outputIndex + 2] = (byte)(initialCollision.Material.Color.X); // red
-                output[outputIndex + 3] = 0; // ignore
+                SetPixelColor(outputIndex, initialCollision.Material.Color, output);
             }
             else if (initialCollision.Material.EmittedLight > 0)
             {
-                output[outputIndex + 0] = (byte)(initialCollision.Material.Color.Z * initialCollision.Material.EmittedLight); // blue
-                output[outputIndex + 1] = (byte)(initialCollision.Material.Color.Y * initialCollision.Material.EmittedLight); // green
-                output[outputIndex + 2] = (byte)(initialCollision.Material.Color.X * initialCollision.Material.EmittedLight); // red
-                output[outputIndex + 3] = 0; // ignore
+                SetPixelColor(outputIndex, initialCollision.Material.Color * initialCollision.Material.EmittedLight, output);
             }
             else
             {
                 Vector3 incomingLight = new Vector3(0);
 
-                int colorSamples = 256;
+                int colorSamples = 512;
                 int bounces = 3;
 
                 uint state = (uint)(i.X * i.Y + i.X);
@@ -84,20 +64,7 @@ namespace MapGenerator
 
                     for (int bounce = 0; bounce < bounces; bounce++)
                     {
-                        RayCollision rayCollision = new RayCollision
-                        {
-                            Distance = float.MaxValue,
-                        };
-
-                        for (int j = 0; j < scene.IntLength; j++)
-                        {
-                            RayCollision collision = scene[j].GetCollision(currentRay);
-
-                            if (collision.Collides == 1 && collision.Distance < rayCollision.Distance)
-                            {
-                                rayCollision = collision;
-                            }
-                        }
+                        RayCollision rayCollision = GetNextCollision(currentRay, scene);
 
                         if (rayCollision.Collides == 0)
                         {
@@ -119,11 +86,37 @@ namespace MapGenerator
                     incomingLight += incomingLightSample;
                 }
 
-                output[outputIndex + 0] = (byte)(incomingLight.Z / colorSamples); // blue
-                output[outputIndex + 1] = (byte)(incomingLight.Y / colorSamples); // green
-                output[outputIndex + 2] = (byte)(incomingLight.X / colorSamples); // red
-                output[outputIndex + 3] = 0; // ignore
+                SetPixelColor(outputIndex, incomingLight / colorSamples, output);
             }
+        }
+
+        public static RayCollision GetNextCollision(Ray ray, ArrayView1D<Triangle, Stride1D.Dense> scene)
+        {
+            RayCollision rayCollision = new RayCollision
+            {
+                Distance = float.MaxValue,
+                Collides = 0,
+            };
+
+            for (int j = 0; j < scene.IntLength; j++)
+            {
+                RayCollision collision = scene[j].GetCollision(ray);
+
+                if (collision.Collides == 1 && collision.Distance < rayCollision.Distance)
+                {
+                    rayCollision = collision;
+                }
+            }
+
+            return rayCollision;
+        }
+
+        public static void SetPixelColor(int index, Vector3 color, ArrayView1D<byte, Stride1D.Dense> output)
+        {
+            output[index    ] = (byte)color.Z; // blue
+            output[index + 1] = (byte)color.Y; // green
+            output[index + 2] = (byte)color.X; // red
+            output[index + 3] = 0;             // ignore
         }
 
         /*public static void GetViewingPlane(Index3D i, ArrayView1D<float, Stride1D.Dense> screenInfo, ArrayView2D<RayCollision, Stride2D.DenseY> rayCollisions, ArrayView1D<Triangle, Stride1D.Dense> scene, ArrayView1D<byte, Stride1D.Dense> output)

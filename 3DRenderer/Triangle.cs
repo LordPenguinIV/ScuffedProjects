@@ -37,7 +37,7 @@ public struct Triangle
         {
             Collides = 1,
             CollisionPoint = ray.Origin + ray.Direction * distance,
-            Normal = Vector3.Normalize(PositionA * w + PositionB * u + PositionC * v),
+            Normal = Vector3.Normalize(normal),
             Distance = distance,
             Material = Material,
         };

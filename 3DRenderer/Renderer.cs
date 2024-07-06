@@ -20,7 +20,7 @@ namespace Thingimajig
             _sizeX = (int)(size * 16f / 9f);
             ClientSize = new Size(_sizeX, _sizeY);
 
-            _bitmap = new Bitmap(ClientSize.Width, ClientSize.Height, PixelFormat.Format32bppArgb);
+            _bitmap = new Bitmap(_sizeX, _sizeY, PixelFormat.Format32bppRgb);
 
             _cam = cam;
 
@@ -36,7 +36,7 @@ namespace Thingimajig
 
         public void Draw(byte[] img)
         {
-            BitmapData bmpData = _bitmap.LockBits(new Rectangle(0, 0, _sizeX, _sizeY), ImageLockMode.WriteOnly, PixelFormat.Format32bppRgb);
+            BitmapData bmpData = _bitmap.LockBits(new Rectangle(0, 0, _sizeX, _sizeY), ImageLockMode.WriteOnly, _bitmap.PixelFormat);
 
             IntPtr ptr = bmpData.Scan0;
             Marshal.Copy(img, 0, ptr, img.Length);
@@ -53,19 +53,19 @@ namespace Thingimajig
 
             if (e.KeyChar == 'w')
             {
-                _cam.Position = new Vector3(_cam.Position.X, _cam.Position.Y, _cam.Position.Z + 1f);
+                _cam.MoveCamera(new Vector3(0, 0, 1));
             }
             else if (e.KeyChar == 's')
             {
-                _cam.Position = new Vector3(_cam.Position.X, _cam.Position.Y, _cam.Position.Z - 1f);
+                _cam.MoveCamera(new Vector3(0, 0, -1));
             }
             else if (e.KeyChar == 'a')
             {
-                _cam.Position = new Vector3(_cam.Position.X - 1f, _cam.Position.Y, _cam.Position.Z);
+                _cam.MoveCamera(new Vector3(-1, 0, 0));
             }
             else if (e.KeyChar == 'd')
             {
-                _cam.Position = new Vector3(_cam.Position.X + 1f, _cam.Position.Y, _cam.Position.Z);
+                _cam.MoveCamera(new Vector3(1, 0, 0));
             }
             else if (e.KeyChar == 'r')
             {
@@ -93,11 +93,11 @@ namespace Thingimajig
             }
             else if (e.KeyChar == '7')
             {
-                _cam.CurrentRotationAngleZ = (_cam.CurrentRotationAngleZ - 30) % 360;
+                _cam.CurrentRotationAngleZ = (_cam.CurrentRotationAngleZ + 30) % 360;
             }
             else if (e.KeyChar == '9')
             {
-                _cam.CurrentRotationAngleZ = (_cam.CurrentRotationAngleZ + 30) % 360;
+                _cam.CurrentRotationAngleZ = (_cam.CurrentRotationAngleZ - 30) % 360;
             }
             else if (e.KeyChar == '+')
             {

@@ -75,6 +75,15 @@ public class Camera
         RotationMatrix = r;
     }
 
+    public void MoveCamera(Vector3 relativeDirection)
+    {
+        Vector3 globalDirection = new Vector3(relativeDirection.X * RotationMatrix[0, 0] + relativeDirection.Y * RotationMatrix[0, 1] + relativeDirection.Z * RotationMatrix[0, 2],
+                relativeDirection.X * RotationMatrix[1, 0] + relativeDirection.Y * RotationMatrix[1, 1] + relativeDirection.Z * RotationMatrix[1, 2],
+                relativeDirection.X * RotationMatrix[2, 0] + relativeDirection.Y * RotationMatrix[2, 1] + relativeDirection.Z * RotationMatrix[2, 2]);
+
+        Position += Vector3.Normalize(globalDirection);
+    }
+
     public byte[] GetViewingPlane()
     {
         MemoryBuffer1D<float, Stride1D.Dense> screenInfoBuffer = Accelerator.Allocate1D(new float[]
@@ -106,6 +115,7 @@ public class Camera
 
         /*if (DoRayTracing)
         {
+            ViewingPlaneKernel stuff
         }*/
 
         //initialRayCollisionsBuffer.Dispose();
