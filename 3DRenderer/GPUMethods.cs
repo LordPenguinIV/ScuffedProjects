@@ -32,13 +32,14 @@ namespace MapGenerator
             {
                 SetPixelColor(outputIndex, skyColor, output);
             }
-            else if (screenInfo[8] == 0)
-            {
-                SetPixelColor(outputIndex, initialCollision.Material.Color, output);
-            }
             else if (initialCollision.Material.EmittedLight > 0)
             {
                 SetPixelColor(outputIndex, initialCollision.Material.Color * initialCollision.Material.EmittedLight, output);
+            }
+            else if (screenInfo[8] == 0)
+            {
+                float angleModifier = -Vector3.Dot(initialCollision.Normal, Vector3.Normalize(rayDirection));
+                SetPixelColor(outputIndex, initialCollision.Material.Color * angleModifier, output);
             }
             else
             {

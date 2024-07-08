@@ -25,8 +25,8 @@ public class Camera
         RecalculationRotationMatrix();
     }
 
-    public int CurrentRotationAngleZ = 180;
-    public int CurrentRotationAngleY = 180;
+    public int CurrentRotationAngleZ = 0;
+    public int CurrentRotationAngleY = 0;
     public int CurrentRotationAngleX = 0;
     public float[,] RotationMatrix;
     public Vector3 Position;
@@ -69,7 +69,7 @@ public class Camera
         r[1, 1] = MathF.Sin(alpha) * MathF.Sin(beta) * MathF.Sin(gamma) + MathF.Cos(alpha) * MathF.Cos(gamma);
         r[1, 2] = MathF.Sin(alpha) * MathF.Sin(beta) * MathF.Cos(gamma) - MathF.Cos(alpha) * MathF.Sin(gamma);
         r[2, 0] = -MathF.Sin(beta);
-        r[2, 1] = MathF.Cos(alpha) * MathF.Sin(gamma);
+        r[2, 1] = MathF.Cos(beta) * MathF.Sin(gamma);
         r[2, 2] = MathF.Cos(beta) * MathF.Cos(gamma);
 
         RotationMatrix = r;

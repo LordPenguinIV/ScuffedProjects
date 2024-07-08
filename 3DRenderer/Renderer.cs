@@ -85,19 +85,11 @@ namespace Thingimajig
             }
             else if (e.KeyChar == '4')
             {
-                _cam.CurrentRotationAngleX = (_cam.CurrentRotationAngleX + 30) % 360;
+                _cam.CurrentRotationAngleX = (_cam.CurrentRotationAngleX - 30) % 360;
             }
             else if (e.KeyChar == '6')
             {
-                _cam.CurrentRotationAngleX = (_cam.CurrentRotationAngleX - 30) % 360;
-            }
-            else if (e.KeyChar == '7')
-            {
-                _cam.CurrentRotationAngleZ = (_cam.CurrentRotationAngleZ + 30) % 360;
-            }
-            else if (e.KeyChar == '9')
-            {
-                _cam.CurrentRotationAngleZ = (_cam.CurrentRotationAngleZ - 30) % 360;
+                _cam.CurrentRotationAngleX = (_cam.CurrentRotationAngleX + 30) % 360;
             }
             else if (e.KeyChar == '+')
             {

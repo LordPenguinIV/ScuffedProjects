@@ -2,7 +2,7 @@
 using System.Numerics;
 using Thingimajig;
 
-int screenSize = 512;
+int screenSize = 720;
 List<Triangle> sceneTriangle = new List<Triangle>();
 
 #region Scene Setup
@@ -12,22 +12,22 @@ Material light = new Material
     Color = new Vector3(255, 255, 128),
 };
 Triangle sunTriangle1 = new Triangle(
-    new Vector3(5, 2, 5),
-    new Vector3(-5, 2, 5),
-    new Vector3(5, 2, -5),
+    new Vector3(10, 2, 10),
+    new Vector3(-10, 2, 10),
+    new Vector3(10, 2, -10),
     light
 );
 Triangle sunTriangle2 = new Triangle(
-    new Vector3(-5, 2, -5),
-    new Vector3(5, 2, -5),
-    new Vector3(-5, 2, 5),
+    new Vector3(-10, 2, -10),
+    new Vector3(10, 2, -10),
+    new Vector3(-10, 2, 10),
     light
 );
 
 Material ground = new Material
 {
     EmittedLight = 0,
-    Color = new Vector3(255, 255, 255),
+    Color = new Vector3(0, 200, 0),
 };
 Triangle groundTriangle1 = new Triangle(
     new Vector3(-5, -2, 5),
@@ -49,7 +49,7 @@ Material brown = new Material
     Color = new Vector3(101, 67, 33),
 };
 
-Model monkey = new Model(@"C:\Users\GotPe\Downloads\Monkey.stl", brown);
+Model monkey = new Model(@"C:\Users\GotPe\Downloads\Monkey.stl", brown, rotation: new Vector3(0, 90, 180));
 monkey.BuildTriangles();
 
 sceneTriangle.Add(groundTriangle1);
@@ -61,7 +61,7 @@ sceneTriangle.AddRange(monkey.Triangles);
 
 Camera cam = new Camera(screenSize, true, sceneTriangle)
 {
-    Position = new Vector3(0, 0, 4),
+    Position = new Vector3(0, 0, -4),
 };
 
 var t = new Stopwatch();
